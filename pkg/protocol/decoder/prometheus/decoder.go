@@ -77,7 +77,7 @@ func (d *Decoder) Decode(data []byte, req *http.Request, tags map[string]string)
 }
 
 func (d *Decoder) decodeInExpFmt(data []byte, _ *http.Request) (logs []*protocol.Log, err error) {
-	decoder := expfmt.NewDecoder(bytes.NewReader(data), expfmt.FmtText)
+	decoder := expfmt.NewDecoder(bytes.NewReader(data), expfmt.NewFormat(expfmt.TypeProtoText))
 	sampleDecoder := expfmt.SampleDecoder{
 		Dec: decoder,
 		Opts: &expfmt.DecodeOptions{
@@ -179,7 +179,7 @@ func (d *Decoder) DecodeV2(data []byte, req *http.Request) (groups []*models.Pip
 }
 
 func ConvertExpFmtDataToPipelineGroupEvents(data []byte, metaInfo models.Metadata, commonTags models.Tags) (pg []*models.PipelineGroupEvents, err error) {
-	decoder := expfmt.NewDecoder(bytes.NewReader(data), expfmt.FmtText)
+	decoder := expfmt.NewDecoder(bytes.NewReader(data), expfmt.NewFormat(expfmt.TypeProtoText))
 	sampleDecoder := expfmt.SampleDecoder{
 		Dec: decoder,
 		Opts: &expfmt.DecodeOptions{
