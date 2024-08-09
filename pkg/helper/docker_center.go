@@ -593,6 +593,8 @@ func (dc *DockerCenter) CreateInfoDetail(info types.ContainerJSON, envConfigPref
 		containerNameTag["_container_ip_"] = ip
 	}
 
+	containerNameTag["_container_id_"] = info.ID
+
 	did := &DockerInfoDetail{
 		ContainerInfo:    info,
 		ContainerNameTag: containerNameTag,
