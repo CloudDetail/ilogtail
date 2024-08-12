@@ -1,3 +1,11 @@
+### 修改说明
+
+基于 [ilogtail 1.8](https://github.com/alibaba/ilogtail/tree/1.8) 添加了三个处理器:
+
+1. pathtopid: 通过fanotify关联文件日志和其对应的进程信息
+2. logtoprommetric: 通过分析日志级别统计日志级别数量指标和Java Exception数量指标
+3. waitforsignal: 通过apo-agent日志采样信号减少最终存储的日志数量
+
 # Alibaba iLogtail - Fast and Lightweight Observability Data Collector | [中文用户手册](https://ilogtail.gitbook.io/ilogtail-docs/)
 
 <img src="https://sls-opensource.oss-us-west-1.aliyuncs.com/ilogtail/ilogtail.svg?versionId=CAEQMxiBgIDEmq.m6BciIDkzNmE2OWU4NzIwZjQ1Y2ZiYmIxZjhiYjMyNmQxZTdi" alt="ilogtail logo" height="150px" align="right" />

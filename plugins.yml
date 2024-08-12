@@ -108,7 +108,6 @@ plugins:
   - import: "github.com/alibaba/ilogtail/plugins/processor/logtoslsmetric"
   - import: "github.com/alibaba/ilogtail/plugins/processor/waitforsignal"
   - import: "github.com/alibaba/ilogtail/plugins/processor/logtoprommetric"
-  - import: "github.com/alibaba/ilogtail/plugins/processor/logtoslsmetric"
   - import: "github.com/alibaba/ilogtail/plugins/processor/pathtopid"
   linux:
   - import: "github.com/alibaba/ilogtail/plugins/flusher/sls"
