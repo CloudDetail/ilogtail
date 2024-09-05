@@ -47,7 +47,9 @@ type SignalSampler struct {
 
 func (s *SignalSampler) Init(context pipeline.Context) error {
 	s.context = context
-	s.logChan = RegisterSampler(s)
+	if !s.DisableSignalSampler {
+		s.logChan = RegisterSampler(s)
+	}
 	logger.Info(context.GetRuntimeContext(), "init signal sampler with id", s.SamplerId)
 	return nil
 }
@@ -117,6 +119,11 @@ func (s *SignalSampler) renameLabelOnly(logArray []*protocol.Log) []*protocol.Lo
 		for _, cont := range log.Contents {
 			if rename, find := s.ContentsRename[cont.Key]; find {
 				cont.Key = rename
+			}
+			if cont.Key == "_container_id_" {
+				if len(cont.Value) > 12 {
+					cont.Value = cont.Value[0:12]
+				}
 			}
 		}
 		log.Contents = append(log.Contents, &protocol.Log_Content{Key: "_time_ns_", Value: strconv.FormatUint(uint64(log.GetTimeNs()), 10)})
