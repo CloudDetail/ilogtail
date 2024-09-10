@@ -24,7 +24,16 @@ jobs:
           go-version: 1.21
       
       - name: Generate App Version
-        run: echo APP_VERSION=$(git describe --tags --always) >> $GITHUB_ENV
+        run: |
+          TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          if [ -n "$TAG" ]; then
+            echo "APP_VERSION=$TAG" >> $GITHUB_ENV
+          else
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            COMMIT=$(git rev-parse --short HEAD)
+            echo "APP_VERSION=${BRANCH}-${COMMIT}" >> $GITHUB_ENV
+          fi
+
       
       - name: Build binary
         run: |
@@ -39,7 +48,7 @@ jobs:
         run: |
           curl https://gosspublic.alicdn.com/ossutil/install.sh | sudo bash
           sudo ossutil config -e $OSS_ENDPOINT -i $OSS_ACCESS_KEY_ID -k $OSS_ACCESS_KEY_SECRET -L CH -c /root/.ossutilconfig
-          sudo ossutil cp node-agent.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz
+          sudo ossutil cp ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
