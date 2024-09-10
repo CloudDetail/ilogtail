@@ -29,7 +29,7 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "APP_VERSION=$TAG" >> $GITHUB_ENV
           else
-            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            BRANCH=$(git rev-parse --abbrev-ref HEAD | sed 's#[^a-zA-Z0-9._-]#-#g')
             COMMIT=$(git rev-parse --short HEAD)
             echo "APP_VERSION=${BRANCH}-${COMMIT}" >> $GITHUB_ENV
           fi
