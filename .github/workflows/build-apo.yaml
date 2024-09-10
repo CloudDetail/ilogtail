@@ -48,7 +48,7 @@ jobs:
         run: |
           curl https://gosspublic.alicdn.com/ossutil/install.sh | sudo bash
           sudo ossutil config -e $OSS_ENDPOINT -i $OSS_ACCESS_KEY_ID -k $OSS_ACCESS_KEY_SECRET -L CH -c /root/.ossutilconfig
-          sudo ossutil cp ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz
+          sudo ossutil cp dist/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
