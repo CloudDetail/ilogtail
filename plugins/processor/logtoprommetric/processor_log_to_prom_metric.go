@@ -2,6 +2,7 @@ package logtoprommetric
 
 import (
 	"context"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,16 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	api "go.opentelemetry.io/otel/metric"
 )
+
+var HOSTNAME string
+
+func init() {
+	var find bool
+	HOSTNAME, find = os.LookupEnv("_node_name_")
+	if !find {
+		HOSTNAME, _ = os.Hostname()
+	}
+}
 
 const pluginName = "processor_log_to_prom_metric"
 
@@ -41,7 +52,9 @@ TraverseLogArray:
 			continue TraverseLogArray
 		}
 
-		var svcTag = &ServiceTag{}
+		var svcTag = &ServiceTag{
+			Node: HOSTNAME,
+		}
 		var logContentIdx = -1
 		for i, cont := range log.Contents {
 			if log.Contents[i] == nil {
@@ -153,6 +166,7 @@ type ServiceTag struct {
 	ContainerId   string
 	SourceFrom    string
 	Pid           string
+	Node          string
 }
 
 func (s *ServiceTag) FillTag(key string, value string) {
@@ -163,7 +177,7 @@ func (s *ServiceTag) FillTag(key string, value string) {
 		s.Namespace = value
 	case "_container_name_":
 		s.ContainerName = value
-	case "_source_":
+	case "_source_", "__tag__:__path__":
 		s.SourceFrom = value
 	case "_container_id_":
 		if len(value) > 12 {
@@ -185,6 +199,7 @@ func (s *ServiceTag) WithLogLevel(level parser.Level) api.MeasurementOption {
 			attribute.Key("namespace").String(s.Namespace),
 			attribute.Key("pod_name").String(s.PodName),
 			attribute.Key("source_from").String(s.SourceFrom),
+			attribute.Key("node").String(s.Node),
 		))
 	} else {
 		// 非容器环境使用pid
@@ -192,6 +207,7 @@ func (s *ServiceTag) WithLogLevel(level parser.Level) api.MeasurementOption {
 			attribute.Key("level").String(level.String()),
 			attribute.Key("pid").String(s.Pid),
 			attribute.Key("source_from").String(s.SourceFrom),
+			attribute.Key("node").String(s.Node),
 		))
 	}
 
