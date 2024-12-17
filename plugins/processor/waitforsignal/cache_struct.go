@@ -1,9 +1,11 @@
 package signalsampler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/alibaba/ilogtail/pkg/logger"
 	"github.com/alibaba/ilogtail/pkg/protocol"
 )
 
@@ -59,13 +61,22 @@ func NewRingCacheBuffer(maxSize int, maxCacheByte int) *RingCacheBuffer {
 
 func (b *RingCacheBuffer) AddIntoBuffer(log *CacheLog) {
 	if (log.Size() + b.GlobalDataSize) > int(b.MaxCacheByte) {
-		// 计算需要从最前丢弃多少个事件
+		// 丢弃缓存最久的事件
 		b.GlobalDataSize -= b.Cache[b.StartIndex].Size()
+		logger.Info(context.Background(),
+			"cached too much data, drop the earliest log at timestamp", b.Cache[b.StartIndex].LogCapturedTime,
+			"container_id", b.Cache[b.StartIndex].SourceKeyRef.ContainerId,
+			"pid", b.Cache[b.StartIndex].SourceKeyRef.ProcessPid)
 		// 由于数据过多丢弃数据,通过置空的方式等待GC回收
 		b.Cache[b.StartIndex] = nil
 		b.StartIndex = (b.StartIndex + 1) % b.MaxSize
 	}
 
+	// 如果缓存的日志数追上了开头, StartIndex 往前移动一位
+	if b.EndIndex == b.StartIndex {
+		b.GlobalDataSize -= b.Cache[b.StartIndex].Size()
+		b.StartIndex = (b.StartIndex + 1) % b.MaxSize
+	}
 	b.GlobalDataSize += log.Size()
 	b.Cache[b.EndIndex] = log
 	b.EndIndex = (b.EndIndex + 1) % b.MaxSize
@@ -164,6 +175,22 @@ func (b *RingCacheBuffer) CheckAndUpdateOutDateIndex() (updated bool, err error)
 	// 当前Index的事件的TS和缓存不一致,数据已经被覆盖,无需清理
 	if b.Cache[nextStartIndex].LogCapturedTime != nextStartTS {
 		return false, fmt.Errorf("nextStartIdx is invalid, nextStartIdx:%d, cacheTS:%d, realTS:%d", nextStartIndex, nextStartTS, b.Cache[nextStartIndex].LogCapturedTime)
+	}
+
+	if b.StartIndex < nextStartIndex {
+		for i := b.StartIndex; i < nextStartIndex; i++ {
+			b.GlobalDataSize -= b.Cache[i].Size()
+			b.Cache[i] = nil
+		}
+	} else {
+		for i := b.StartIndex; i < b.MaxSize; i++ {
+			b.GlobalDataSize -= b.Cache[i].Size()
+			b.Cache[i] = nil
+		}
+		for i := 0; i < nextStartIndex; i++ {
+			b.GlobalDataSize -= b.Cache[i].Size()
+			b.Cache[i] = nil
+		}
 	}
 
 	b.StartIndex = nextStartIndex
