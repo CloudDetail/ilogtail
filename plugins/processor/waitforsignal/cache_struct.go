@@ -73,7 +73,7 @@ func (b *RingCacheBuffer) AddIntoBuffer(log *CacheLog) {
 	}
 
 	// 如果缓存的日志数追上了开头, StartIndex 往前移动一位
-	if b.EndIndex == b.StartIndex {
+	if b.EndIndex == b.StartIndex && b.Cache[b.StartIndex] != nil {
 		b.GlobalDataSize -= b.Cache[b.StartIndex].Size()
 		b.StartIndex = (b.StartIndex + 1) % b.MaxSize
 	}
