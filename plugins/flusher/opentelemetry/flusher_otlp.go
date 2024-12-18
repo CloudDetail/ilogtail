@@ -167,7 +167,7 @@ func (f *FlusherOTLP) Stop() error {
 		}
 	}
 
-	if f.metricClient.grpcConn != nil {
+	if f.metricClient != nil && f.metricClient.grpcConn != nil {
 		err = f.metricClient.grpcConn.Close()
 		if err != nil {
 			logger.Error(f.context.GetRuntimeContext(), "FLUSHER_STOP_ALARM", "stop otlp metrics flusher fail, error", err)
