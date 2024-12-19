@@ -100,7 +100,7 @@ func (g *GlobalCache) ProcessLogsAndSignal(signalChan chan Signal) {
 				if signal.MatchedLog {
 					logger.Debug(context.Background(), "clean expired signal, signal matched log", *signal)
 				} else {
-					logger.Info(context.Background(), "clean expired signal, signal not matched any log", *signal)
+					logger.Debug(context.Background(), "clean expired signal, signal not matched any log", *signal)
 				}
 			}
 
@@ -136,7 +136,9 @@ func (g *GlobalCache) ProcessLogsAndSignal(signalChan chan Signal) {
 			// 添加日志到缓存
 			// TODO 加入已导出日志到缓存仅仅用于检测无法匹配到任何日志的信号
 			// 仅影响日志输出,为了性能优化跳过已导出的日志
-			g.AddIntoBuffer(log)
+			if !log.IsExposed {
+				g.AddIntoBuffer(log)
+			}
 		}
 	}
 }
