@@ -60,7 +60,8 @@ func NewRingCacheBuffer(maxSize int, maxCacheByte int) *RingCacheBuffer {
 }
 
 func (b *RingCacheBuffer) AddIntoBuffer(log *CacheLog) {
-	if (log.Size() + b.GlobalDataSize) > int(b.MaxCacheByte) {
+	if (log.Size()+b.GlobalDataSize) > int(b.MaxCacheByte) &&
+		b.Cache[b.StartIndex] != nil {
 		// 丢弃缓存最久的事件
 		b.GlobalDataSize -= b.Cache[b.StartIndex].Size()
 		logger.Info(context.Background(),
@@ -179,17 +180,23 @@ func (b *RingCacheBuffer) CheckAndUpdateOutDateIndex() (updated bool, err error)
 
 	if b.StartIndex < nextStartIndex {
 		for i := b.StartIndex; i < nextStartIndex; i++ {
-			b.GlobalDataSize -= b.Cache[i].Size()
-			b.Cache[i] = nil
+			if b.Cache[i] != nil {
+				b.GlobalDataSize -= b.Cache[i].Size()
+				b.Cache[i] = nil
+			}
 		}
-	} else {
+	} else if b.StartIndex > nextStartIndex {
 		for i := b.StartIndex; i < b.MaxSize; i++ {
-			b.GlobalDataSize -= b.Cache[i].Size()
-			b.Cache[i] = nil
+			if b.Cache[i] != nil {
+				b.GlobalDataSize -= b.Cache[i].Size()
+				b.Cache[i] = nil
+			}
 		}
 		for i := 0; i < nextStartIndex; i++ {
-			b.GlobalDataSize -= b.Cache[i].Size()
-			b.Cache[i] = nil
+			if b.Cache[i] != nil {
+				b.GlobalDataSize -= b.Cache[i].Size()
+				b.Cache[i] = nil
+			}
 		}
 	}
 
