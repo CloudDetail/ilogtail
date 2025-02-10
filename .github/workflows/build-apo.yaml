@@ -13,7 +13,15 @@ env:
 
 jobs:
   main:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        include:
+        - os: ubuntu-latest
+          arch: amd64
+        - os: ubuntu-24.04-arm
+          arch: arm64
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: Checkout
@@ -48,7 +56,7 @@ jobs:
       run: |
         curl https://gosspublic.alicdn.com/ossutil/install.sh | sudo bash
         sudo ossutil config -e $OSS_ENDPOINT -i $OSS_ACCESS_KEY_ID -k $OSS_ACCESS_KEY_SECRET -L CH -c /root/.ossutilconfig
-        sudo ossutil cp dist/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-amd64.tar.gz
+        sudo ossutil cp dist/ilogtail-${{ env.APP_VERSION }}.linux-${{ matrix.arch }}.tar.gz oss://$OSS_BUCKET/ilogtail-${{ env.APP_VERSION }}.linux-${{ matrix.arch }}.tar.gz
 
     - name: Login to DockerHub
       uses: docker/login-action@v2
@@ -56,8 +64,16 @@ jobs:
         registry: registry.cn-hangzhou.aliyuncs.com
         username: ${{ secrets.REGISTRY_USERNAME }}
         password: ${{ secrets.REGISTRY_PASSWORD }}
-
-    - name: Build docker image and push
+      
+    - name: Build docker image and push (AMD64)
+      if: matrix.arch == 'amd64'
       run: |
         VERSION=${{ env.APP_VERSION }} DOCKER_REPOSITORY=${{ env.DOCKERHUB_REPO }} make docker
         docker push ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}
+    
+    - name: Build docker image and push (ARM64)
+      if: matrix.arch == 'arm64'
+      run: |
+        VERSION=${{ env.APP_VERSION }} DOCKER_REPOSITORY=${{ env.DOCKERHUB_REPO }} make docker
+        docker tag ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }} ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}-arm64
+        docker push ${{ env.DOCKERHUB_REPO }}:${{ env.APP_VERSION }}-arm64

@@ -20,11 +20,19 @@ COPY . .
 
 ARG HOST_OS=Linux
 ARG VERSION=1.8.8
+ARG ARCH=amd64
 
 USER root
 
-RUN wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz && \
-    rm -rf /usr/local/go && \
-    tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+RUN if [ "$ARCH" == "amd64" ]; then \
+      wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz -O go1.21.0.tar.gz; \
+    elif [ "$ARCH" = "arm64" ]; then \
+      wget https://go.dev/dl/go1.21.0.linux-arm64.tar.gz -O go1.21.0.tar.gz; \
+    else \
+      echo "Unknown architecture"; exit 1; \
+    fi
+    
+RUN rm -rf /usr/local/go && \
+    tar -C /usr/local -xzf go1.21.0.tar.gz
 
 RUN --mount=type=ssh sh generated_files/gen_build.sh

@@ -24,8 +24,18 @@ FROM centos:centos7.9.2009
 MAINTAINER TomYu yyuuttaaoo@gmail.com
 
 ENV container docker
+ARG TARGETPLATFORM
 
-RUN curl -L -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+        echo "Building for AMD64"; \
+        curl -L -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo; \
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        echo "Building for ARM64"; \
+        curl -L -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-altarch-7.repo; \
+    else \
+        echo "Unsupported platform: $TARGETPLATFORM"; \
+        exit 1; \
+    fi
 
 RUN yum update -y && yum upgrade -y && yum -y clean all && rm -fr /var/cache && rm -rf /core.*
 
