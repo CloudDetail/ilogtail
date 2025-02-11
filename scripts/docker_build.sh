@@ -111,6 +111,7 @@ if [[ $CATEGORY != "multi-arch-production" ]]; then
         $BUILD_SSH_OPTS \
 	      --build-arg VERSION="$VERSION" \
         --build-arg HOST_OS="$HOST_OS" \
+        --build-arg ARCH="$ARCH" \
         -t "$REPOSITORY":"$VERSION" \
         --no-cache -f $GEN_DOCKERFILE .
 else
