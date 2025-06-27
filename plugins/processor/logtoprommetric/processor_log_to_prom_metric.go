@@ -200,6 +200,7 @@ func (s *ServiceTag) WithLogLevel(level parser.Level) api.MeasurementOption {
 			attribute.Key("pod_name").String(s.PodName),
 			attribute.Key("source_from").String(s.SourceFrom),
 			attribute.Key("node").String(s.Node),
+			attribute.Key("node_name").String(s.Node),
 		))
 	} else {
 		// 非容器环境使用pid
@@ -208,6 +209,7 @@ func (s *ServiceTag) WithLogLevel(level parser.Level) api.MeasurementOption {
 			attribute.Key("pid").String(s.Pid),
 			attribute.Key("source_from").String(s.SourceFrom),
 			attribute.Key("node").String(s.Node),
+			attribute.Key("node_name").String(s.Node),
 		))
 	}
 
@@ -222,12 +224,14 @@ func (s *ServiceTag) WithExceptionType(exceptionType string) api.MeasurementOpti
 			attribute.Key("namespace").String(s.Namespace),
 			attribute.Key("pod_name").String(s.PodName),
 			attribute.Key("source_from").String(s.SourceFrom),
+			attribute.Key("node_name").String(s.Node),
 		))
 	} else {
 		return api.WithAttributeSet(attribute.NewSet(
 			attribute.Key("pid").String(s.Pid),
 			attribute.Key("exception").String(exceptionType),
 			attribute.Key("source_from").String(s.SourceFrom),
+			attribute.Key("node_name").String(s.Node),
 		))
 	}
 }
