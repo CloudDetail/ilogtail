@@ -15,7 +15,7 @@ env:
   REGISTRY_HOST: registry.cn-hangzhou.aliyuncs.com
 
 jobs:
-  build images:
+  build-images:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
