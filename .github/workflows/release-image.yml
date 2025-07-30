@@ -1,0 +1,65 @@
+name: Release Image
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The tag to release'
+        required: true
+
+env:
+  ILOGTAIL_CONTAINER_NAME: apo-ilogtail
+  REGISTRY_HOST: registry.cn-hangzhou.aliyuncs.com
+
+jobs:
+  build images:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+    runs-on: ${{ matrix.os }}
+    outputs:
+      IMAGE_TAG_NAME: ${{ steps.build-images.outputs.IMAGE_TAG_NAME }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca
+
+      - name: Log in to container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY_HOST }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Generate image metadata
+        id: build-image
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+          COMMIT_HASH: ${{ github.sha }}
+        run: |
+          echo "IMAGE_TAG_NAME=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          echo "ILOGTAIL_IMAGE_FULL_TAG=${{ env.REGISTRY_HOST }}/${{ secrets.REGISTRY_USERNAME }}/${{ env.ILOGTAIL_CONTAINER_NAME }}:${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+
+      - name: Build ilogtail docker image and push
+        run: |
+          make docker
+          docker push
+
+      - name: push tag
+        uses: anothrNick/github-tag-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CUSTOM_TAG: ${{ github.event.inputs.tag }}
