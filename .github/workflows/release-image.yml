@@ -11,7 +11,7 @@ on:
         required: true
 
 env:
-  ILOGTAIL_CONTAINER_NAME: apo-ilogtail
+  ILOGTAIL_CONTAINER_NAME: ilogtail
   REGISTRY_HOST: registry.cn-hangzhou.aliyuncs.com
 
 jobs:
