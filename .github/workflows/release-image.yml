@@ -59,7 +59,7 @@ jobs:
           make dist VERSION=${{ github.event.inputs.tag }}
           make docker VERSION=${{ github.event.inputs.tag }} DOCKER_REPOSITORY=${{ env.REGISTRY_HOST }}/${{ secrets.REGISTRY_USERNAME }}/${{ env.ILOGTAIL_CONTAINER_NAME }} DOCKER_PUSH=true
 
-      - name: Build ilogtail docker image and push(AMD64)
+      - name: Build ilogtail docker image and push(ARM64)
         run: |
           VERSION=${{ github.event.inputs.tag }} DOCKER_REPOSITORY=${{ env.DOCKERHUB_REPO }} make docker
           docker tag ${{ env.DOCKERHUB_REPO }}:${{ github.event.inputs.tag }} ${{ env.DOCKERHUB_REPO }}:${{ github.event.inputs.tag }}
