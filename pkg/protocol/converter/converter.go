@@ -60,6 +60,7 @@ const (
 	tagK8sPodName            = "k8s.pod.name"
 	tagK8sPodIP              = "k8s.pod.ip"
 	tagK8sPodUID             = "k8s.pod.uid"
+	tagContainerID           = "container.id"
 	tagContainerName         = "container.name"
 	tagContainerIP           = "container.ip"
 	tagContainerImageName    = "container.image.name"
@@ -85,6 +86,7 @@ var tagConversionMap = map[string]string{
 	"_pod_name_":       tagK8sPodName,
 	"_pod_ip_":         tagK8sPodIP,
 	"_pod_uid_":        tagK8sPodUID,
+	"_container_id_":   tagContainerID,
 	"_container_name_": tagContainerName,
 	"_container_ip_":   tagContainerIP,
 	"_image_name_":     tagContainerImageName,

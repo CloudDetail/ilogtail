@@ -112,6 +112,7 @@ plugins:
     - import: "github.com/alibaba/ilogtail/plugins/processor/split/string"
     - import: "github.com/alibaba/ilogtail/plugins/processor/stringreplace"
     - import: "github.com/alibaba/ilogtail/plugins/processor/strptime"
+    - import: "github.com/alibaba/ilogtail/plugins/processor/logtoprommetric"
   linux:
     - import: "github.com/alibaba/ilogtail/plugins/input/command"
     - import: "github.com/alibaba/ilogtail/plugins/input/gpu"
@@ -119,5 +120,7 @@ plugins:
     - import: "github.com/alibaba/ilogtail/plugins/input/prometheus"
     - import: "github.com/alibaba/ilogtail/plugins/input/snmp"
     - import: "github.com/alibaba/ilogtail/plugins/input/telegraf"
+    - import: "github.com/alibaba/ilogtail/plugins/processor/waitforsignal"
+    - import: "github.com/alibaba/ilogtail/plugins/processor/pathtopid"
   windows:
     - import: "github.com/alibaba/ilogtail/plugins/input/input_wineventlog"
