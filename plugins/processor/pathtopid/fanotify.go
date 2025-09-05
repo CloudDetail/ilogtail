@@ -29,10 +29,15 @@ type fanotifyCache struct {
 	mu       sync.RWMutex
 
 	// parse Mount
-	rawPath2MountPath map[string]string
+	rawPath2MountPath map[rawPKey]string
 	parseMount        bool
 
 	context pipeline.Context
+}
+
+type rawPKey struct {
+	rawPath string
+	pid     int
 }
 
 type eventType int
@@ -193,10 +198,10 @@ func (f *fanotifyCache) getEvent() (*notifyEvent, error) {
 
 	if f.parseMount {
 		if len(f.rawPath2MountPath) > 1e3 {
-			f.rawPath2MountPath = make(map[string]string)
+			f.rawPath2MountPath = make(map[rawPKey]string)
 		}
 
-		key := fmt.Sprintf("%d@@%s", data.Pid, path)
+		key := rawPKey{rawPath: path, pid: data.GetPID()}
 		if mountPath, ok := f.rawPath2MountPath[key]; ok {
 			path = mountPath
 		} else {
@@ -232,37 +237,58 @@ func (f *fanotifyCache) parseMountInfo(data *fanotify.EventMetadata, rawPath str
 	mountID := []byte(strconv.Itoa(fd.MountID))
 	pid := data.GetPID()
 
-	content, err := os.ReadFile(fmt.Sprintf("/proc/%d/mountinfo", pid))
+	file, err := os.Open(fmt.Sprintf("/proc/%d/mountinfo", pid))
 	if err != nil {
 		return rawPath
 	}
+	defer file.Close()
 
-	scanner := bufio.NewScanner(bytes.NewReader(content))
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
 		}
 
-		i := bytes.IndexByte(line, ' ')
-		if i == -1 {
+		root, mountPoint, ok := parseMountInfoLine(line, mountID)
+		if !ok {
 			continue
 		}
 
-		if !bytes.Equal(line[:i], mountID) {
-			continue
+		if strings.HasPrefix(rawPath, string(mountPoint)) {
+			return string(root) + rawPath[len(mountPoint):]
 		}
+		break
+	}
 
-		fields := bytes.Fields(line)
-		target := string(fields[4])
-		source := string(fields[3])
-
-		if strings.HasPrefix(rawPath, target) {
-			return strings.Replace(rawPath, target, source, 1)
-		}
+	if err := scanner.Err(); err != nil {
+		logger.Error(f.context.GetRuntimeContext(), "PATH2PID read mountinfo failed", "err", err)
 	}
 
 	return rawPath
+}
+
+func parseMountInfoLine(line, targetID []byte) (root, mountPoint []byte, ok bool) {
+	field := 0
+	start := 0
+	for i := 0; i <= len(line); i++ {
+		if i == len(line) || line[i] == ' ' {
+			if field == 0 {
+				// 检查 mountID
+				if !bytes.Equal(line[start:i], targetID) {
+					return nil, nil, false
+				}
+			} else if field == 3 {
+				root = line[start:i]
+			} else if field == 4 {
+				mountPoint = line[start:i]
+				return root, mountPoint, true
+			}
+			field++
+			start = i + 1
+		}
+	}
+	return nil, nil, false
 }
 
 func (f *fanotifyCache) cleanExpired() {
