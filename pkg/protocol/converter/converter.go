@@ -60,7 +60,7 @@ const (
 	tagK8sPodName            = "k8s.pod.name"
 	tagK8sPodIP              = "k8s.pod.ip"
 	tagK8sPodUID             = "k8s.pod.uid"
-	tagContainerID           = "container.id"
+	tagContainerID           = "_container_id_"
 	tagContainerName         = "container.name"
 	tagContainerIP           = "container.ip"
 	tagContainerImageName    = "container.image.name"
