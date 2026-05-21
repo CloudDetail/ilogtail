@@ -105,7 +105,8 @@ func (f *fanotifyCache) RemovePath(path string) {
 
 	if err := f.notify.Mark(
 		unix.FAN_MARK_REMOVE,
-		0,
+		unix.FAN_MODIFY|
+			unix.FAN_CLOSE_WRITE,
 		unix.AT_FDCWD,
 		path,
 	); err != nil {
