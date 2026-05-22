@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/alibaba/ilogtail/pkg/logger"
@@ -77,10 +78,13 @@ func (f *fanotifyCache) Init(context pipeline.Context) {
 	f.path2pid = make(map[string]*info)
 }
 
-func (f *fanotifyCache) AddPath(path string) {
+func (f *fanotifyCache) AddPath(path string) bool {
+	if f.notify == nil {
+		return false
+	}
 	if f.maxFiles >= MAX_MARK {
 		logger.Warning(f.context.GetRuntimeContext(), "add path err: maxfiles reached")
-		return
+		return false
 	}
 
 	logger.Info(f.context.GetRuntimeContext(), "message", "AddPath", "path", path)
@@ -92,14 +96,18 @@ func (f *fanotifyCache) AddPath(path string) {
 		path,
 	); err != nil {
 		logger.Errorf(f.context.GetRuntimeContext(), "add mark notify", "path: %v, err: %v", path, err)
-		return
+		return false
 	}
 	f.maxFiles++
+	return true
 }
 
 func (f *fanotifyCache) RemovePath(path string) {
+	if f.notify == nil {
+		return
+	}
 	if f.maxFiles < 1 {
-		logger.Warning(context.Background(), "remove path err: not watch file")
+		logger.Warning(f.context.GetRuntimeContext(), "remove path err: not watch file")
 		return
 	}
 
@@ -110,8 +118,7 @@ func (f *fanotifyCache) RemovePath(path string) {
 		unix.AT_FDCWD,
 		path,
 	); err != nil {
-		logger.Errorf(context.Background(), "remove mark notify", "path: %v, err: %v", path, err)
-		return
+		logger.Errorf(f.context.GetRuntimeContext(), "remove mark notify", "path: %v, err: %v", path, err)
 	}
 	f.maxFiles--
 }
@@ -298,29 +305,77 @@ func (f *fanotifyCache) cleanExpired() {
 	for k, v := range f.path2pid {
 		if time.Now().UnixNano()-v.timestamp > time.Hour.Nanoseconds() {
 			f.RemovePath(k)
+			logger.Info(f.context.GetRuntimeContext(), "path2PID", "expired", "path", k, "pid", v.pid)
 			delete(f.path2pid, k)
 		}
 	}
 }
 
 func (f *fanotifyCache) getPidFromPath(path string) *info {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	info, ok := f.path2pid[path]
-	if ok {
-		return info
+	if !ok {
+		return nil
 	}
-	return nil
+	if !info.init {
+		f.refreshUninitializedWatch(path, info)
+		info = f.path2pid[path]
+	}
+	return info
 }
 
 func (f *fanotifyCache) addPathWatch(path string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.AddPath(path)
+	f.addPathWatchLocked(path)
+}
+
+func (f *fanotifyCache) addPathWatchLocked(path string) {
+	if !f.AddPath(path) {
+		return
+	}
+
 	info := &info{
 		pid:       0,
 		timestamp: time.Now().UnixNano(),
 		init:      false,
 	}
+	if dev, ino, err := pathInode(path); err == nil {
+		info.dev = dev
+		info.ino = ino
+	} else {
+		logger.Warningf(f.context.GetRuntimeContext(), "path2PID watched path stat failed, path: %v, err: %v", path, err)
+	}
 	f.path2pid[path] = info
+}
+
+func pathInode(path string) (uint64, uint64, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return 0, 0, err
+	}
+	sys, ok := stat.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, 0, fmt.Errorf("unexpected stat type %T", stat.Sys())
+	}
+	return uint64(sys.Dev), uint64(sys.Ino), nil
+}
+
+func (f *fanotifyCache) refreshUninitializedWatch(path string, info *info) {
+	dev, ino, err := pathInode(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			logger.Warningf(f.context.GetRuntimeContext(), "path2PID uninitialized watched path deleted path=%s old_dev=%d old_ino=%d err=%v\n", path, info.dev, info.ino, err)
+			delete(f.path2pid, path)
+			return
+		}
+		logger.Infof(f.context.GetRuntimeContext(), "path2PID uninitialized watched path stat failed path=%s old_dev=%d old_ino=%d err=%v\n", path, info.dev, info.ino, err)
+		return
+	}
+	if dev != info.dev || ino != info.ino {
+		logger.Infof(f.context.GetRuntimeContext(), "path2PID uninitialized watched path inode changed path=%s old_dev=%d old_ino=%d new_dev=%d new_ino=%d\n", path, info.dev, info.ino, dev, ino)
+		delete(f.path2pid, path)
+		f.addPathWatchLocked(path)
+	}
 }

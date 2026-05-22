@@ -31,6 +31,8 @@ type info struct {
 	pid       int
 	timestamp int64
 	init      bool
+	dev       uint64
+	ino       uint64
 }
 
 type ProcessorPathToPid struct {
@@ -114,12 +116,12 @@ func (p *ProcessorPathToPid) processLog(log *protocol.Log) {
 			continue
 		}
 
+		log.Contents = append(log.Contents, &protocol.Log_Content{Key: expected_path_key, Value: content.Value})
 		info := f.getPidFromPath(content.Value)
 		if info == nil {
 			f.addPathWatch(content.Value)
 		} else if info.init {
 			log.Contents = append(log.Contents, &protocol.Log_Content{Key: pid_key, Value: strconv.Itoa(info.pid)})
-			log.Contents = append(log.Contents, &protocol.Log_Content{Key: expected_path_key, Value: content.Value})
 		}
 		break
 	}
